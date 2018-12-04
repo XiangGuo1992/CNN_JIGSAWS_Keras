@@ -28,39 +28,49 @@ save_dir = os.path.join(os.getcwd(), 'saved_models')
 model_name = 'keras_1_out_itr1_trained_model.h5'
 
 
-training_data = []
-
+#create train data
 def create_training_data():
-    for category in tqdm(CATEGORIES):  
+    train_data = []
+    for category in tqdm(os.listdir(TRAINDATADIR)):  
         path = os.path.join(TRAINDATADIR,category)  
         class_num = CATEGORIES.index(category)  # get the classification  
-        for img in os.listdir(path):  # iterate over each image
+        imglist = os.listdir(path)
+        for img in imglist:  # iterate over each image
             try:
+                trial = '_'.join(img.split('_')[:-1])
+                index = int(img.split('_')[-1].split('.')[0])
                 img_array = cv2.imread(os.path.join(path,img) ,cv2.IMREAD_GRAYSCALE)  # convert to array
                 new_array = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))  # resize to normalize data size
-                training_data.append([new_array, class_num, img, category])  # add this to our training_data
+                train_data.append([new_array, class_num, img, trial,index])  # add this to our training_data
             except Exception as e:  
                 pass
-create_training_data()
-print(len(training_data))
-shuffle(training_data)
+    # sort the indexes, first by the trial, then by the index
+    sorted_train_data = sorted(train_data, key=lambda x: (x[3], x[4]))
+    return sorted_train_data
+                
+train_data = create_training_data()
+print(len(train_data))
 
 
 
+#for training data
 X_train = []
 y_train = []
 imgs_train = []
-gestures_train = []
+trial_train = []
+indexes_train = []
 
-for features,label,img,category in training_data:
+for features,label,img,trial,index in train_data:
     X_train.append(features)
     y_train.append(label)
     imgs_train.append(img)
-    gestures_train(category)
+    trial_train.append(trial)
+    indexes_train.append(index)
     
 
 
 X_train = np.array(X_train).reshape(-1, IMG_SIZE, IMG_SIZE, 1)
+X_train = X_train/255.0
 # Convert class vectors to binary class matrices.
 y_train = keras.utils.to_categorical(y_train, num_classes)
 
@@ -147,35 +157,47 @@ print('Saved trained model at %s ' % model_path)
 
 
 #create test data
-test_data = []
-
 def create_test_data():
+    test_data = []
     for category in tqdm(os.listdir(TESTDATADIR)):  
         path = os.path.join(TESTDATADIR,category)  
         class_num = CATEGORIES.index(category)  # get the classification  
-        for img in os.listdir(path):  # iterate over each image
+        imglist = os.listdir(path)
+
+
+        for img in imglist:  # iterate over each image
             try:
+                trial = '_'.join(img.split('_')[:-1])
+                index = int(img.split('_')[-1].split('.')[0])
                 img_array = cv2.imread(os.path.join(path,img) ,cv2.IMREAD_GRAYSCALE)  # convert to array
                 new_array = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))  # resize to normalize data size
-                test_data.append([new_array, class_num, img, category])  # add this to our training_data
+                test_data.append([new_array, class_num, img, trial,index])  # add this to our test_data
             except Exception as e:  
                 pass
+    # sort the indexes, first by the trial, then by the index
+    sorted_test = sorted(test_data, key=lambda x: (x[3], x[4]))
+    return sorted_test
 
-create_test_data()
-
+test_data = create_test_data()
 print(len(test_data))
 
+#for test data
 X_test = []
 y_test = []
+imgs_test = []
+trial_test = []
+indexes_test = []
 
-for features,label,img,category in test_data:
+for features,label,img,trial,index in test_data:
     X_test.append(features)
     y_test.append(label)
+    imgs_test.append(img)
+    trial_test.append(trial)
+    indexes_test.append(index)
 
-print(X_test[0].reshape(-1, IMG_SIZE, IMG_SIZE, 1))
 
 X_test = np.array(X_test).reshape(-1, IMG_SIZE, IMG_SIZE, 1)
-X_train = X_train/255.0
+X_test = X_test/255.0
 # Convert class vectors to binary class matrices.
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
