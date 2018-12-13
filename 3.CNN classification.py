@@ -10,7 +10,7 @@ import keras
 from keras.callbacks import TensorBoard
 from keras.preprocessing.image import ImageDataGenerator
 from random import shuffle
-
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 
 
 
@@ -115,17 +115,33 @@ NAME = "1-out"
 
 
 model = Sequential()
-model.add(Conv2D(256, (3, 3), input_shape=X_train.shape[1:]))
+model.add(Conv2D(512, (3, 3), input_shape=X_train.shape[1:]))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Conv2D(512, (3, 3)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+
+model.add(Conv2D(256, (3, 3)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
 
 model.add(Conv2D(256, (3, 3)))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten())  # this converts our 3D feature maps to 1D feature vectors
-
-model.add(Dense(64))
+model.add(Dense(1024,activation='relu'))
+model.add(Dropout(0.2))
+model.add(Dense(1024,activation='relu'))
+model.add(Dropout(0.2))
+model.add(Dense(256,activation='relu'))
+model.add(Dropout(0.2))
+model.add(Dense(64,activation='relu'))
+model.add(Dropout(0.2))
 
 model.add(Dense(num_classes))
 model.add(Activation('softmax'))
@@ -136,7 +152,10 @@ model.compile(loss='categorical_crossentropy',
 
 
 tensorboard = TensorBoard(log_dir="logs/{}".format(NAME))
-history = model.fit(X_train, y_train, batch_size=32, epochs=20, validation_split=0.3,shuffle=True)
+callbacks = [EarlyStopping(monitor='val_loss', patience=2),
+             ModelCheckpoint(filepath='saved_models/best_model.h5', monitor='val_loss', save_best_only=True)]
+
+history = model.fit(X_train, y_train, callbacks=callbacks,batch_size=128, epochs=20, validation_split=0.3,shuffle=True)
 
 
 endtime = time.time()
